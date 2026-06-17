@@ -1,82 +1,139 @@
+# ClusterInstance Configuration - Helm Values
+# This values file defines all configuration for OpenShift cluster deployment
+
+# ============================================================================
+# CLUSTER METADATA
+# ============================================================================
 cluster:
-  name: ocplab
-  namespace: ocplab-spoke
-  baseDomain: attlocal.net
-  imageSetRef: img4.18.0-x86-64-appsub
-  environment: lab
-  cloud: BareMetal
-  tier: cdf
-  site: adc
+  name: "adc-cluster"
+  namespace: "open-cluster-management"
+  environment: "production"
+  syncWave: "2"
+
+# ============================================================================
+# CLUSTER SPECIFICATIONS
+# ============================================================================
+clusterSpec:
+  baseDomain: "example.com"
+  networkType: "OVNKubernetes"
   holdInstallation: false
+  
+  # Image and Pull Credentials
+  clusterImageSetNameRef: "openshift-4.14"
+  pullSecretName: "pullsecret-cluster"
+  
+  # SSH Configuration
+  sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..."
+  
+  # Virtual IPs for API and Ingress
+  virtualIPs:
+    api: "192.168.1.10"
+    ingress: "192.168.1.11"
+  
+  # NTP Configuration
+  additionalNTPSources:
+    - "ntp.example.com"
+    - "8.8.8.8"
 
-pullSecret:
-  namePrefix: pullsecret-cluster
+# ============================================================================
+# CLUSTER LABELS
+# ============================================================================
+clusterLabels:
+  cloud: "BareMetal"
+  tier: "cdf"
+  site: "adc"
+  clusterset: "production"
 
-sshPublicKey: "ssh-rsa REPLACE_WITH_PUBLIC_KEY"
-
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
 network:
-  type: OVNKubernetes
-  apiVIP: 192.168.100.10
-  ingressVIP: 192.168.100.11
-  clusterNetwork: 10.128.0.0/14
-  hostPrefix: 23
-  serviceNetwork: 172.30.0.0/16
-  machineNetwork: 192.168.100.0/22
-  interfaceName: eno1
-  prefixLength: 22
-  gateway: 192.168.100.1
-  routeTableId: 254
-  dns:
-    - 8.8.8.8
-    - 8.8.4.4
-  ntp:
-    - 0.pool.ntp.org
-    - 1.pool.ntp.org
+  # Cluster Network (Pod CIDR)
+  cluster:
+    cidr: "10.128.0.0/14"
+    hostPrefix: 23
+  
+  # Service Network (Service CIDR)
+  service:
+    - "172.30.0.0/16"
+  
+  # Machine Network (Node CIDR)
+  machine:
+    - cidr: "192.168.1.0/24"
 
+# ============================================================================
+# TEMPLATE REFERENCES
+# ============================================================================
 templateRefs:
   cluster:
-    name: ai-cluster-templates-v1
-    namespace: open-cluster-management
+    - name: "ai-cluster-templates-v1"
+      namespace: "open-cluster-management"
   node:
-    name: ai-node-templates-v1
-    namespace: open-cluster-management
+    - name: "ai-node-templates-v1"
+      namespace: "open-cluster-management"
 
-rootDeviceHints:
-  deviceName: /dev/sda
+# ============================================================================
+# NETWORK INTERFACE DEFAULTS
+# ============================================================================
+networkDefaults:
+  interfaceName: "ens1f0"
+  ipv4:
+    enabled: true
+    prefixLength: 22
+    dhcp: false
+  dns:
+    servers:
+      - "8.8.8.8"
+      - "8.8.4.4"
+  gateway:
+    address: "192.168.1.1"
+    routeTableId: "254"
 
-nodes:
-  - hostName: master01.attlocal.net
-    role: master
-    bootMACAddress: "AA:BB:CC:DD:EE:01"
-    macAddress: "AA:BB:CC:DD:EE:11"
-    ipAddress: 192.168.100.21
+# ============================================================================
+# MASTER NODES (Control Plane) - 3 Master nodes required for HA
+# ============================================================================
+masterNodes:
+  - name: "master-1"
+    hostname: "master-1.adc.example.com"
+    bootMAC: "00:50:56:c0:00:01"
+    interfaceMAC: "00:50:56:c0:01:01"
+    ipAddress: "192.168.1.20"
+    rootDevice: "/dev/sda"
+  
+  - name: "master-2"
+    hostname: "master-2.adc.example.com"
+    bootMAC: "00:50:56:c0:00:02"
+    interfaceMAC: "00:50:56:c0:01:02"
+    ipAddress: "192.168.1.21"
+    rootDevice: "/dev/sda"
+  
+  - name: "master-3"
+    hostname: "master-3.adc.example.com"
+    bootMAC: "00:50:56:c0:00:03"
+    interfaceMAC: "00:50:56:c0:01:03"
+    ipAddress: "192.168.1.22"
+    rootDevice: "/dev/sda"
 
-  - hostName: master02.attlocal.net
-    role: master
-    bootMACAddress: "AA:BB:CC:DD:EE:02"
-    macAddress: "AA:BB:CC:DD:EE:12"
-    ipAddress: 192.168.100.22
+# ============================================================================
+# WORKER NODES - Scale by adding entries
+# ============================================================================
+workerNodes:
+  - name: "worker-1"
+    hostname: "worker-1.adc.example.com"
+    bootMAC: "00:50:56:c0:00:04"
+    interfaceMAC: "00:50:56:c0:01:04"
+    ipAddress: "192.168.1.23"
+    rootDevice: "/dev/sda"
+  
+  - name: "worker-2"
+    hostname: "worker-2.adc.example.com"
+    bootMAC: "00:50:56:c0:00:05"
+    interfaceMAC: "00:50:56:c0:01:05"
+    ipAddress: "192.168.1.24"
+    rootDevice: "/dev/sda"
 
-  - hostName: master03.attlocal.net
-    role: master
-    bootMACAddress: "AA:BB:CC:DD:EE:03"
-    macAddress: "AA:BB:CC:DD:EE:13"
-    ipAddress: 192.168.100.23
-
-  - hostName: worker01.attlocal.net
-    role: worker
-    bootMACAddress: "AA:BB:CC:DD:EE:04"
-    macAddress: "AA:BB:CC:DD:EE:14"
-    ipAddress: 192.168.100.24
-
-  - hostName: worker02.attlocal.net
-    role: worker
-    bootMACAddress: "AA:BB:CC:DD:EE:05"
-    macAddress: "AA:BB:CC:DD:EE:15"
-    ipAddress: 192.168.100.25
-
-  - hostName: worker03.attlocal.net
-    role: worker
-    bootMACAddress: "AA:BB:CC:DD:EE:06"
-    macAddress: "AA:BB:CC:DD:EE:16"
-    ipAddress: 192.168.100.26
+# ============================================================================
+# BOOT CONFIGURATION
+# ============================================================================
+bootConfig:
+  mode: "UEFI"
