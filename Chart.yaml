@@ -1,0 +1,6 @@
+apiVersion: v2
+name: clusterinstance
+version: 0.1.0
+description: Helm chart for Open Cluster Management ClusterInstance bare metal installation
+appVersion: "1.0.0"
+type: application
