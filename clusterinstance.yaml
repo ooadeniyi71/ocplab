@@ -126,8 +126,8 @@ spec:
       
       {{- /* 
         Network Configuration
-        Uses networkDefaults with optional per-node overrides via networkConfig field
-        Fixed in v2: Added support for per-node network overrides
+        Uses networkDefaults for all nodes
+        Fixed in v3: Removed undefined .networkConfig reference
       */ -}}
       nodeNetwork:
         interfaces:
@@ -143,7 +143,7 @@ spec:
                 enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
                 address:
                   - ip: {{ .ipAddress }}
-                    prefix-length: {{ .networkConfig.ipv4.prefixLength | default $.Values.networkDefaults.ipv4.prefixLength }}
+                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
           
           {{- /* DNS Configuration - only rendered if servers defined */ -}}
@@ -186,8 +186,8 @@ spec:
       
       {{- /* 
         Network Configuration
-        Uses networkDefaults with optional per-node overrides via networkConfig field
-        Fixed in v2: Added support for per-node network overrides
+        Uses networkDefaults for all nodes
+        Fixed in v3: Removed undefined .networkConfig reference
       */ -}}
       nodeNetwork:
         interfaces:
@@ -203,7 +203,7 @@ spec:
                 enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
                 address:
                   - ip: {{ .ipAddress }}
-                    prefix-length: {{ .networkConfig.ipv4.prefixLength | default $.Values.networkDefaults.ipv4.prefixLength }}
+                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
           
           {{- /* DNS Configuration - only rendered if servers defined */ -}}
