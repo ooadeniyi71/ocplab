@@ -1,18 +1,3 @@
-{{- /*
-  ClusterInstance Helm Template
-  
-  This template generates a ClusterInstance resource for OpenShift cluster deployment
-  via Open Cluster Management (OCM).
-  
-  Key Features:
-  - Templated node configuration (master/worker)
-  - Network interface defaults with per-node overrides
-  - Automatic Secret reference construction
-  - Conditional NTP and DNS configuration
-  - Inline documentation for all key fields
-  
-  IMPORTANT: Review 'Required Pre-requisites' section below before deployment
-*/ -}}
 apiVersion: siteconfig.open-cluster-management.io/v1alpha1
 kind: ClusterInstance
 metadata:
@@ -20,74 +5,40 @@ metadata:
   namespace: {{ .Values.cluster.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "{{ .Values.cluster.syncWave }}"
-    
 spec:
   holdInstallation: {{ .Values.clusterSpec.holdInstallation }}
   clusterName: {{ .Values.cluster.name }}
   baseDomain: {{ .Values.clusterSpec.baseDomain }}
-  
-  {{- /* 
-    Pull Secret Reference
-    REQUIRED: Secret must exist in cluster.namespace with format: {pullSecretName}-{cluster.name}
-    Example: pullsecret-cluster-adc-cluster
-  */ -}}
   pullSecretRef:
     name: {{ .Values.clusterSpec.pullSecretName }}-{{ .Values.cluster.name }}
-  
   clusterImageSetNameRef: {{ .Values.clusterSpec.clusterImageSetNameRef }}
   sshPublicKey: {{ .Values.clusterSpec.sshPublicKey | quote }}
   networkType: {{ .Values.clusterSpec.networkType }}
-  
-  {{- /* 
-    Virtual IP Addresses - MUST be quoted strings
-    These IPs must be within the machine network CIDR and must not be in DHCP range
-    Fixed in v2: Added quotes to ensure valid YAML string format
-  */ -}}
   apiVIP: "{{ .Values.clusterSpec.virtualIPs.api }}"
   ingressVIP: "{{ .Values.clusterSpec.virtualIPs.ingress }}"
-  
-  {{- /* 
-    Optional NTP Sources - only rendered if defined
-    Fixed in v2: Added null check to prevent empty block
-  */ -}}
   {{- if .Values.clusterSpec.additionalNTPSources }}
   additionalNTPSources:
     {{- range .Values.clusterSpec.additionalNTPSources }}
     - {{ . }}
     {{- end }}
   {{- end }}
-  
-  {{- /* 
-    Cluster Labels for organization and selection
-  */ -}}
   clusterLabels:
     cloud: {{ .Values.clusterLabels.cloud }}
     tier: {{ .Values.clusterLabels.tier }}
     site: {{ .Values.clusterLabels.site }}
     environment: {{ .Values.cluster.environment }}
     cluster.open-cluster-management.io/clusterset: {{ .Values.clusterLabels.clusterset }}
-  
-  {{- /* 
-    Network Configuration
-  */ -}}
   clusterNetwork:
     - cidr: {{ .Values.network.cluster.cidr }}
       hostPrefix: {{ .Values.network.cluster.hostPrefix }}
-  
   serviceNetwork:
     {{- range .Values.network.service }}
     - {{ . }}
     {{- end }}
-  
   machineNetwork:
     {{- range .Values.network.machine }}
     - cidr: {{ .cidr }}
     {{- end }}
-  
-  {{- /* 
-    Template References for cluster-wide configuration
-    Fixed in v2: Added null check
-  */ -}}
   {{- if .Values.templateRefs.cluster }}
   templateRefs:
     {{- range .Values.templateRefs.cluster }}
@@ -95,27 +46,14 @@ spec:
       namespace: {{ .namespace }}
     {{- end }}
   {{- end }}
-  
-  {{- /* 
-    Node Configuration
-    
-    Master Nodes: Control plane - typically 3 for HA
-    Worker Nodes: Compute nodes - scale as needed
-    
-    Template Note: Uses $.Values to access root scope within nested loops
-  */ -}}
   nodes:
-    {{- /* MASTER NODES (Control Plane) */ -}}
     {{- range .Values.masterNodes }}
     - hostName: {{ .hostname }}
       role: master
       bootMACAddress: {{ .bootMAC }}
-      {{- /* Boot mode defaults to UEFI if not specified */ -}}
       bootMode: {{ .bootMode | default "UEFI" }}
       rootDeviceHints:
         deviceName: {{ .rootDevice }}
-      
-      {{- /* Node-level template references */ -}}
       {{- if $.Values.templateRefs.node }}
       templateRefs:
         {{- range $.Values.templateRefs.node }}
@@ -123,12 +61,6 @@ spec:
           namespace: {{ .namespace }}
         {{- end }}
       {{- end }}
-      
-      {{- /* 
-        Network Configuration
-        Uses networkDefaults for all nodes
-        Fixed in v3: Removed undefined .networkConfig reference
-      */ -}}
       nodeNetwork:
         interfaces:
           - name: {{ $.Values.networkDefaults.interfaceName }}
@@ -145,8 +77,6 @@ spec:
                   - ip: {{ .ipAddress }}
                     prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
-          
-          {{- /* DNS Configuration - only rendered if servers defined */ -}}
           {{- if $.Values.networkDefaults.dns.servers }}
           dns-resolver:
             config:
@@ -155,8 +85,6 @@ spec:
                 - {{ . }}
                 {{- end }}
           {{- end }}
-          
-          {{- /* Default Route Configuration */ -}}
           routes:
             config:
               - destination: 0.0.0.0/0
@@ -164,18 +92,13 @@ spec:
                 next-hop-interface: {{ $.Values.networkDefaults.interfaceName }}
                 table-id: {{ $.Values.networkDefaults.gateway.routeTableId }}
     {{- end }}
-    
-    {{- /* WORKER NODES */ -}}
     {{- range .Values.workerNodes }}
     - hostName: {{ .hostname }}
       role: worker
       bootMACAddress: {{ .bootMAC }}
-      {{- /* Boot mode defaults to UEFI if not specified */ -}}
       bootMode: {{ .bootMode | default "UEFI" }}
       rootDeviceHints:
         deviceName: {{ .rootDevice }}
-      
-      {{- /* Node-level template references */ -}}
       {{- if $.Values.templateRefs.node }}
       templateRefs:
         {{- range $.Values.templateRefs.node }}
@@ -183,12 +106,6 @@ spec:
           namespace: {{ .namespace }}
         {{- end }}
       {{- end }}
-      
-      {{- /* 
-        Network Configuration
-        Uses networkDefaults for all nodes
-        Fixed in v3: Removed undefined .networkConfig reference
-      */ -}}
       nodeNetwork:
         interfaces:
           - name: {{ $.Values.networkDefaults.interfaceName }}
@@ -205,8 +122,6 @@ spec:
                   - ip: {{ .ipAddress }}
                     prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
-          
-          {{- /* DNS Configuration - only rendered if servers defined */ -}}
           {{- if $.Values.networkDefaults.dns.servers }}
           dns-resolver:
             config:
@@ -215,8 +130,6 @@ spec:
                 - {{ . }}
                 {{- end }}
           {{- end }}
-          
-          {{- /* Default Route Configuration */ -}}
           routes:
             config:
               - destination: 0.0.0.0/0
