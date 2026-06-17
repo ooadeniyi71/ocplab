@@ -1,0 +1,82 @@
+cluster:
+  name: ocplab
+  namespace: ocplab-spoke
+  baseDomain: attlocal.net
+  imageSetRef: img4.18.0-x86-64-appsub
+  environment: lab
+  cloud: BareMetal
+  tier: cdf
+  site: adc
+  holdInstallation: false
+
+pullSecret:
+  namePrefix: pullsecret-cluster
+
+sshPublicKey: "ssh-rsa REPLACE_WITH_PUBLIC_KEY"
+
+network:
+  type: OVNKubernetes
+  apiVIP: 192.168.100.10
+  ingressVIP: 192.168.100.11
+  clusterNetwork: 10.128.0.0/14
+  hostPrefix: 23
+  serviceNetwork: 172.30.0.0/16
+  machineNetwork: 192.168.100.0/22
+  interfaceName: eno1
+  prefixLength: 22
+  gateway: 192.168.100.1
+  routeTableId: 254
+  dns:
+    - 8.8.8.8
+    - 8.8.4.4
+  ntp:
+    - 0.pool.ntp.org
+    - 1.pool.ntp.org
+
+templateRefs:
+  cluster:
+    name: ai-cluster-templates-v1
+    namespace: open-cluster-management
+  node:
+    name: ai-node-templates-v1
+    namespace: open-cluster-management
+
+rootDeviceHints:
+  deviceName: /dev/sda
+
+nodes:
+  - hostName: master01.attlocal.net
+    role: master
+    bootMACAddress: "AA:BB:CC:DD:EE:01"
+    macAddress: "AA:BB:CC:DD:EE:11"
+    ipAddress: 192.168.100.21
+
+  - hostName: master02.attlocal.net
+    role: master
+    bootMACAddress: "AA:BB:CC:DD:EE:02"
+    macAddress: "AA:BB:CC:DD:EE:12"
+    ipAddress: 192.168.100.22
+
+  - hostName: master03.attlocal.net
+    role: master
+    bootMACAddress: "AA:BB:CC:DD:EE:03"
+    macAddress: "AA:BB:CC:DD:EE:13"
+    ipAddress: 192.168.100.23
+
+  - hostName: worker01.attlocal.net
+    role: worker
+    bootMACAddress: "AA:BB:CC:DD:EE:04"
+    macAddress: "AA:BB:CC:DD:EE:14"
+    ipAddress: 192.168.100.24
+
+  - hostName: worker02.attlocal.net
+    role: worker
+    bootMACAddress: "AA:BB:CC:DD:EE:05"
+    macAddress: "AA:BB:CC:DD:EE:15"
+    ipAddress: 192.168.100.25
+
+  - hostName: worker03.attlocal.net
+    role: worker
+    bootMACAddress: "AA:BB:CC:DD:EE:06"
+    macAddress: "AA:BB:CC:DD:EE:16"
+    ipAddress: 192.168.100.26
