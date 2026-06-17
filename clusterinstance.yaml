@@ -1,3 +1,18 @@
+{{- /*
+  ClusterInstance Helm Template
+  
+  This template generates a ClusterInstance resource for OpenShift cluster deployment
+  via Open Cluster Management (OCM).
+  
+  Key Features:
+  - Templated node configuration (master/worker)
+  - Network interface defaults with per-node overrides
+  - Automatic Secret reference construction
+  - Conditional NTP and DNS configuration
+  - Inline documentation for all key fields
+  
+  IMPORTANT: Review 'Required Pre-requisites' section below before deployment
+*/ -}}
 apiVersion: siteconfig.open-cluster-management.io/v1alpha1
 kind: ClusterInstance
 metadata:
@@ -5,23 +20,46 @@ metadata:
   namespace: {{ .Values.cluster.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "{{ .Values.cluster.syncWave }}"
+    
 spec:
   holdInstallation: {{ .Values.clusterSpec.holdInstallation }}
   clusterName: {{ .Values.cluster.name }}
   baseDomain: {{ .Values.clusterSpec.baseDomain }}
+  
+  {{- /* 
+    Pull Secret Reference
+    REQUIRED: Secret must exist in cluster.namespace with format: {pullSecretName}-{cluster.name}
+    Example: pullsecret-cluster-adc-cluster
+  */ -}}
   pullSecretRef:
     name: {{ .Values.clusterSpec.pullSecretName }}-{{ .Values.cluster.name }}
+  
   clusterImageSetNameRef: {{ .Values.clusterSpec.clusterImageSetNameRef }}
   sshPublicKey: {{ .Values.clusterSpec.sshPublicKey | quote }}
   networkType: {{ .Values.clusterSpec.networkType }}
-  apiVIP: {{ .Values.clusterSpec.virtualIPs.api }}
-  ingressVIP: {{ .Values.clusterSpec.virtualIPs.ingress }}
   
+  {{- /* 
+    Virtual IP Addresses - MUST be quoted strings
+    These IPs must be within the machine network CIDR and must not be in DHCP range
+    Fixed in v2: Added quotes to ensure valid YAML string format
+  */ -}}
+  apiVIP: "{{ .Values.clusterSpec.virtualIPs.api }}"
+  ingressVIP: "{{ .Values.clusterSpec.virtualIPs.ingress }}"
+  
+  {{- /* 
+    Optional NTP Sources - only rendered if defined
+    Fixed in v2: Added null check to prevent empty block
+  */ -}}
+  {{- if .Values.clusterSpec.additionalNTPSources }}
   additionalNTPSources:
     {{- range .Values.clusterSpec.additionalNTPSources }}
     - {{ . }}
     {{- end }}
+  {{- end }}
   
+  {{- /* 
+    Cluster Labels for organization and selection
+  */ -}}
   clusterLabels:
     cloud: {{ .Values.clusterLabels.cloud }}
     tier: {{ .Values.clusterLabels.tier }}
@@ -29,6 +67,9 @@ spec:
     environment: {{ .Values.cluster.environment }}
     cluster.open-cluster-management.io/clusterset: {{ .Values.clusterLabels.clusterset }}
   
+  {{- /* 
+    Network Configuration
+  */ -}}
   clusterNetwork:
     - cidr: {{ .Values.network.cluster.cidr }}
       hostPrefix: {{ .Values.network.cluster.hostPrefix }}
@@ -43,26 +84,51 @@ spec:
     - cidr: {{ .cidr }}
     {{- end }}
   
+  {{- /* 
+    Template References for cluster-wide configuration
+    Fixed in v2: Added null check
+  */ -}}
+  {{- if .Values.templateRefs.cluster }}
   templateRefs:
     {{- range .Values.templateRefs.cluster }}
     - name: {{ .name }}
       namespace: {{ .namespace }}
     {{- end }}
+  {{- end }}
   
+  {{- /* 
+    Node Configuration
+    
+    Master Nodes: Control plane - typically 3 for HA
+    Worker Nodes: Compute nodes - scale as needed
+    
+    Template Note: Uses $.Values to access root scope within nested loops
+  */ -}}
   nodes:
-    # Master Nodes (Control Plane)
+    {{- /* MASTER NODES (Control Plane) */ -}}
     {{- range .Values.masterNodes }}
     - hostName: {{ .hostname }}
       role: master
       bootMACAddress: {{ .bootMAC }}
+      {{- /* Boot mode defaults to UEFI if not specified */ -}}
       bootMode: {{ .bootMode | default "UEFI" }}
       rootDeviceHints:
         deviceName: {{ .rootDevice }}
+      
+      {{- /* Node-level template references */ -}}
+      {{- if $.Values.templateRefs.node }}
       templateRefs:
         {{- range $.Values.templateRefs.node }}
         - name: {{ .name }}
           namespace: {{ .namespace }}
         {{- end }}
+      {{- end }}
+      
+      {{- /* 
+        Network Configuration
+        Uses networkDefaults with optional per-node overrides via networkConfig field
+        Fixed in v2: Added support for per-node network overrides
+      */ -}}
       nodeNetwork:
         interfaces:
           - name: {{ $.Values.networkDefaults.interfaceName }}
@@ -77,14 +143,20 @@ spec:
                 enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
                 address:
                   - ip: {{ .ipAddress }}
-                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
+                    prefix-length: {{ .networkConfig.ipv4.prefixLength | default $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
+          
+          {{- /* DNS Configuration - only rendered if servers defined */ -}}
+          {{- if $.Values.networkDefaults.dns.servers }}
           dns-resolver:
             config:
               server:
                 {{- range $.Values.networkDefaults.dns.servers }}
                 - {{ . }}
                 {{- end }}
+          {{- end }}
+          
+          {{- /* Default Route Configuration */ -}}
           routes:
             config:
               - destination: 0.0.0.0/0
@@ -93,19 +165,30 @@ spec:
                 table-id: {{ $.Values.networkDefaults.gateway.routeTableId }}
     {{- end }}
     
-    # Worker Nodes
+    {{- /* WORKER NODES */ -}}
     {{- range .Values.workerNodes }}
     - hostName: {{ .hostname }}
       role: worker
       bootMACAddress: {{ .bootMAC }}
+      {{- /* Boot mode defaults to UEFI if not specified */ -}}
       bootMode: {{ .bootMode | default "UEFI" }}
       rootDeviceHints:
         deviceName: {{ .rootDevice }}
+      
+      {{- /* Node-level template references */ -}}
+      {{- if $.Values.templateRefs.node }}
       templateRefs:
         {{- range $.Values.templateRefs.node }}
         - name: {{ .name }}
           namespace: {{ .namespace }}
         {{- end }}
+      {{- end }}
+      
+      {{- /* 
+        Network Configuration
+        Uses networkDefaults with optional per-node overrides via networkConfig field
+        Fixed in v2: Added support for per-node network overrides
+      */ -}}
       nodeNetwork:
         interfaces:
           - name: {{ $.Values.networkDefaults.interfaceName }}
@@ -120,14 +203,20 @@ spec:
                 enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
                 address:
                   - ip: {{ .ipAddress }}
-                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
+                    prefix-length: {{ .networkConfig.ipv4.prefixLength | default $.Values.networkDefaults.ipv4.prefixLength }}
                 dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
+          
+          {{- /* DNS Configuration - only rendered if servers defined */ -}}
+          {{- if $.Values.networkDefaults.dns.servers }}
           dns-resolver:
             config:
               server:
                 {{- range $.Values.networkDefaults.dns.servers }}
                 - {{ . }}
                 {{- end }}
+          {{- end }}
+          
+          {{- /* Default Route Configuration */ -}}
           routes:
             config:
               - destination: 0.0.0.0/0
