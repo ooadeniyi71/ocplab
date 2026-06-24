@@ -1,0 +1,149 @@
+apiVersion: siteconfig.open-cluster-management.io/v1alpha1
+kind: ClusterInstance
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Values.cluster.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{ .Values.cluster.syncWave }}"
+spec:
+  holdInstallation: {{ .Values.clusterSpec.holdInstallation }}
+  clusterName: {{ .Values.cluster.name }}
+  baseDomain: {{ .Values.clusterSpec.baseDomain }}
+  pullSecretRef:
+    name: {{ .Values.clusterSpec.pullSecretName }}-{{ .Values.cluster.name }}
+  clusterImageSetNameRef: {{ .Values.clusterSpec.clusterImageSetNameRef }}
+  sshPublicKey: {{ .Values.clusterSpec.sshPublicKey | quote }}
+  networkType: {{ .Values.clusterSpec.networkType }}
+  apiVIPs: 
+    - {{ .Values.clusterSpec.vipAPI }}
+  ingressVIPs: 
+    - {{ .Values.clusterSpec.ingressAPI }}
+
+
+  {{- if .Values.clusterSpec.additionalNTPSources }}
+  additionalNTPSources:
+    {{- range .Values.clusterSpec.additionalNTPSources }}
+    - {{ . }}
+    {{- end }}
+  {{- end }}
+  clusterLabels:
+    cloud: {{ .Values.clusterLabels.cloud }}
+    tier: {{ .Values.clusterLabels.tier }}
+    site: {{ .Values.clusterLabels.site }}
+    environment: {{ .Values.cluster.environment }}
+    cluster.open-cluster-management.io/clusterset: {{ .Values.clusterLabels.clusterset }}
+  clusterNetwork:
+    - cidr: {{ .Values.network.cluster.cidr }}
+      hostPrefix: {{ .Values.network.cluster.hostPrefix }}
+  serviceNetwork:
+    {{- range .Values.network.service }}
+    - cidr: {{ .cidr }}
+    {{- end }}
+  machineNetwork:
+    {{- range .Values.network.machine }}
+    - cidr: {{ .cidr }}
+    {{- end }}
+  {{- if .Values.templateRefs.cluster }}
+  templateRefs:
+    {{- range .Values.templateRefs.cluster }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
+    {{- end }}
+  {{- end }}
+  nodes:
+    {{- range .Values.masterNodes }}
+    - hostName: {{ .hostname }}
+      role: master
+      bmcAddress: {{ .bmcAddress  }}
+      bmcCredentialsName: 
+          name: {{ .bmcCredentialsName }}
+      bootMACAddress: {{ .bootMAC }}
+      bootMode: {{ .bootMode | default "UEFI" }}
+      rootDeviceHints:
+        deviceName: {{ .rootDevice }}
+      {{- if $.Values.templateRefs.node }}
+      templateRefs:
+        {{- range $.Values.templateRefs.node }}
+        - name: {{ .name }}
+          namespace: {{ .namespace }}
+        {{- end }}
+      {{- end }}
+      nodeNetwork:
+        interfaces:
+          - name: {{ $.Values.networkDefaults.interfaceName }}
+            macAddress: {{ .interfaceMAC }}
+        config:
+          interfaces:
+            - name: {{ $.Values.networkDefaults.interfaceName }}
+              type: ethernet
+              state: up
+              mac-address: {{ .interfaceMAC }}
+              ipv4:
+                enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
+                address:
+                  - ip: {{ .ipAddress }}
+                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
+                dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
+          {{- if $.Values.networkDefaults.dns.servers }}
+          dns-resolver:
+            config:
+              server:
+                {{- range $.Values.networkDefaults.dns.servers }}
+                - {{ . }}
+                {{- end }}
+          {{- end }}
+          routes:
+            config:
+              - destination: 0.0.0.0/0
+                next-hop-address: {{ $.Values.networkDefaults.gateway.address }}
+                next-hop-interface: {{ $.Values.networkDefaults.interfaceName }}
+                table-id: {{ $.Values.networkDefaults.gateway.routeTableId }}
+    {{- end }}
+    {{- range .Values.workerNodes }}
+    - hostName: {{ .hostname }}
+      role: worker
+      bmcAddress: {{ .bmcAddress  }}
+      bmcCredentialsName: 
+          name: {{ .bmcCredentialsName }}
+      bootMACAddress: {{ .bootMAC }}
+      bootMode: {{ .bootMode | default "UEFI" }}
+      rootDeviceHints:
+        deviceName: {{ .rootDevice }}
+      {{- if $.Values.templateRefs.node }}
+      templateRefs:
+        {{- range $.Values.templateRefs.node }}
+        - name: {{ .name }}
+          namespace: {{ .namespace }}
+        {{- end }}
+      {{- end }}
+      nodeNetwork:
+        interfaces:
+          - name: {{ $.Values.networkDefaults.interfaceName }}
+            macAddress: {{ .interfaceMAC }}
+        config:
+          interfaces:
+            - name: {{ $.Values.networkDefaults.interfaceName }}
+              type: ethernet
+              state: up
+              mac-address: {{ .interfaceMAC }}
+              ipv4:
+                enabled: {{ $.Values.networkDefaults.ipv4.enabled }}
+                address:
+                  - ip: {{ .ipAddress }}
+                    prefix-length: {{ $.Values.networkDefaults.ipv4.prefixLength }}
+                dhcp: {{ $.Values.networkDefaults.ipv4.dhcp }}
+          {{- if $.Values.networkDefaults.dns.servers }}
+          dns-resolver:
+            config:
+              server:
+                {{- range $.Values.networkDefaults.dns.servers }}
+                - {{ . }}
+                {{- end }}
+          {{- end }}
+          routes:
+            config:
+              - destination: 0.0.0.0/0
+                next-hop-address: {{ $.Values.networkDefaults.gateway.address }}
+                next-hop-interface: {{ $.Values.networkDefaults.interfaceName }}
+                table-id: {{ $.Values.networkDefaults.gateway.routeTableId }}
+    {{- end }}
