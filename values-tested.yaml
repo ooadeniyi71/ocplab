@@ -1,0 +1,149 @@
+# ClusterInstance Configuration - Helm Values
+# This values file defines all configuration for OpenShift cluster deployment
+# 
+# REQUIRED: Ensure the following secrets are pre-created in the target namespace:
+# - Pull secrets referenced by pullSecretName
+# - SSH public key should ideally reference a secret instead of embedding
+
+# ============================================================================
+# CLUSTER METADATA
+# ============================================================================
+cluster:
+  name: "ocplab1"
+  namespace: "ocplab1-spoke"
+  environment: "homelab"
+  syncWave: "2"
+
+# ============================================================================
+# CLUSTER SPECIFICATIONS
+# ============================================================================
+clusterSpec:
+  baseDomain: "attlocal.net"
+  networkType: "OVNKubernetes"
+  holdInstallation: false
+  
+  # Image and Pull Credentials
+  clusterImageSetNameRef: "openshift-4.14"
+  pullSecretName: "pullsecret-cluster"
+  # NOTE: pullSecretRef in template will be constructed as: {pullSecretName}-{cluster.name}
+  # Ensure this secret exists before deployment
+  
+  # SSH Configuration
+  # WARNING: Best practice is to reference a secret instead of embedding the key here
+  sshPublicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILoWADe8rTQcIoSN3P+zruSE8lLYu/9UDhSchk+9yU4B root@fedora"
+  
+  # Virtual IPs for API and Ingress (must be valid IPs in your network)
+  vipAPI: "10.227.1.118"
+  ingressAPI: "10.227.1.119"
+
+  # NTP Configuration
+  additionalNTPSources:
+    - "8.8.8.8"
+    - "1.1.1.1"
+
+# ============================================================================
+# CLUSTER LABELS
+# ============================================================================
+clusterLabels:
+  cloud: "BareMetal"
+  tier: "cdf"
+  site: "ocplab1"
+  clusterset: "homelab"
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+network:
+  # Cluster Network (Pod CIDR)
+  cluster:
+    cidr: "10.128.0.0/14"
+    hostPrefix: 23
+  
+  # Service Network (Service CIDR)
+  service:
+    - cidr: "172.30.0.0/16"
+  
+  # Machine Network (Node CIDR)
+  machine:
+    - cidr: "10.227.1.0/24"
+
+# ============================================================================
+# TEMPLATE REFERENCES
+# ============================================================================
+templateRefs:
+  cluster:
+    - name: "ai-cluster-templates-v1"
+      namespace: "ocplab1-spoke"
+  node:
+    - name: "ai-node-templates-v1"
+      namespace: "ocplab1-spoke"
+
+# ============================================================================
+# NETWORK INTERFACE DEFAULTS
+# ============================================================================
+# These defaults apply to all nodes unless overridden at the node level
+networkDefaults:
+  interfaceName: "ens18"
+  ipv4:
+    enabled: true
+    prefixLength: 22
+    dhcp: false
+  dns:
+    servers:
+      - "10.227.1.206"
+      - "10.227.1.1"
+  gateway:
+    address: "10.227.1.1"
+    routeTableId: "254"  # Must be a string
+
+# ============================================================================
+# MASTER NODES (Control Plane) - 3 Master nodes required for HA
+# ============================================================================
+masterNodes:
+  - name: "dell1-m1"
+    hostname: "dell1-m1.ocplab1.attlocal.net"  # Must match domain pattern: *.baseDomain
+    bmcAddress: redfish-virtualmedia+https://10.227.1.111/redfish/v1/System
+    bmcCredentialsName: bmc-secret
+    bootMAC: "BC:24:11:5A:F3:A6"
+    interfaceMAC: "BC:24:11:5A:F3:A6"
+    ipAddress: "10.227.1.111"
+    rootDevice: "/dev/sda"
+    # bootMode: "UEFI"  # Optional: override default (UEFI is default)
+  
+  - name: "dell1-m2"
+    hostname: "dell1-m2.ocplab1.attlocal.net"
+    bmcAddress: redfish-virtualmedia+https://10.227.1.112/redfish/v1/System
+    bmcCredentialsName: bmc-secret
+    bootMAC: "BC:24:11:91:DF:02"
+    interfaceMAC: "BC:24:11:91:DF:02"
+    ipAddress: "10.227.1.112"
+    rootDevice: "/dev/sda"
+  
+  - name: "dell1-m3"
+    hostname: "dell1-m3.ocplab1.attlocal.net"
+    bmcAddress: redfish-virtualmedia+https://10.227.1.113/redfish/v1/System
+    bmcCredentialsName: bmc-secret
+    bootMAC: "BC:24:11:6C:CD:05"
+    interfaceMAC: "BC:24:11:6C:CD:05"
+    ipAddress: "10.227.1.113"
+    rootDevice: "/dev/sda"
+
+# ============================================================================
+# WORKER NODES - Scale by adding entries
+# ============================================================================
+workerNodes:
+  - name: "dell1-w1"
+    hostname: "dell1-w1.ocplab1.attlocal.net"  # Must match domain pattern: *.baseDomain
+    bmcAddress: redfish-virtualmedia+https://10.227.1.114/redfish/v1/System
+    bmcCredentialsName: bmc-secret
+    bootMAC: "BC:24:11:70:D1:B6"
+    interfaceMAC: "BC:24:11:70:D1:B6"
+    ipAddress: "10.227.1.114"
+    rootDevice: "/dev/sda"
+  
+
+# ============================================================================
+# BOOT CONFIGURATION
+# ============================================================================
+bootConfig:
+  mode: "UEFI"  # Supported modes: UEFI, BIOS
