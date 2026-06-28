@@ -11,7 +11,10 @@ helmCharts:
     repo: https://github.com/ooadeniyi71/ocplab.git
     version: 1.0.0
     releaseName: my-release
+    path: gitops/argocd/install
     valuesFile: 
     - clusterinstance.yaml
     - values.yaml
     - values.schema.json
+
+  
