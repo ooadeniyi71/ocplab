@@ -1,0 +1,26 @@
+# apps/web-app-production.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-production
+  namespace: argocd
+spec:
+  project: default
+  # Source definition pulling from multiple places (Chart + Local Git values)
+  sources:
+    - repoURL: 'registry-1.docker.io/bitnamicharts' # Remote Helm Registry
+      chart: nginx
+      targetRevision: 15.9.0                        # Exact chart version pinned
+      helm:
+        valueFiles:
+          - $values/envs/production/values.yaml     # References the second source repo
+    - repoURL: 'https://github.com' # YOUR GIT REPO
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: 'https://kubernetes.default.svc'       # Target cluster API
+    namespace: production                           # Target deployment namespace
+  syncPolicy:
+    automated:                                      # Auto-reconcile Git changes
+      prune: true
+      selfHeal: true
