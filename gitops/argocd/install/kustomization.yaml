@@ -6,3 +6,4 @@ resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   - argocd-server-route.yaml
   - values.yaml
+  - values.schema.json
