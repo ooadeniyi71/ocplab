@@ -12,5 +12,6 @@ helmCharts:
     version: 1.0.0
     releaseName: my-release
     valuesFile: 
+    - clusterinstance.yaml
     - values.yaml
     - values.schema.json
