@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ocplab-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ooadeniyi71/ocplab.git
+    targetRevision: ocplab1-spoke
+    path: gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
