@@ -5,5 +5,12 @@ resources:
   - namespace.yaml
   - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   - argocd-server-route.yaml
-  - values.yaml
-  - values.schema.json
+
+helmCharts:
+  - name: my-chart
+    repo: https://github.com/ooadeniyi71/ocplab.git
+    version: 1.0.0
+    releaseName: my-release
+    valuesFile: 
+    - values.yaml
+    - values.schema.json
