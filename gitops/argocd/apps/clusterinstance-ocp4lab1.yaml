@@ -1,0 +1,82 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clusterinstance-ocp4lab1
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ooadeniyi71/ocplab.git
+    targetRevision: main
+    path: acm-clusterinstance
+    helm:
+      releaseName: clusterinstance-ocp4lab1
+      values: |
+        cluster:
+          name: "ocp4lab1"
+          namespace: "clusters"
+          environment: "lab"
+          syncWave: "0"
+        clusterSpec:
+          holdInstallation: false
+          baseDomain: "example.com"
+          pullSecretName: "pull-secret"
+          clusterImageSetNameRef: "openshift-v4.14"
+          sshPublicKey: "ssh-rsa AAAAB3NzaC1yc2EAAA..."
+          networkType: "OVNKubernetes"
+          vipAPI: "10.0.0.10"
+          ingressAPI: "10.0.0.11"
+        clusterLabels:
+          cloud: "baremetal"
+          tier: "hub"
+          site: "lab1"
+          clusterset: "default"
+        network:
+          cluster:
+            cidr: "10.128.0.0/14"
+            hostPrefix: 23
+          service:
+            - cidr: "172.30.0.0/16"
+          machine:
+            - cidr: "10.0.0.0/24"
+        networkDefaults:
+          interfaceName: "ens1"
+          ipv4:
+            enabled: true
+            prefixLength: 24
+            dhcp: false
+          dns:
+            servers:
+              - "8.8.8.8"
+              - "8.8.4.4"
+          gateway:
+            address: "10.0.0.1"
+            routeTableId: 254
+        masterNodes:
+          - hostname: "master0"
+            bmcAddress: "ipmi://10.0.0.20"
+            bmcCredentialsName: "bmc-secret"
+            bootMAC: "00:11:22:33:44:55"
+            bootMode: "UEFI"
+            rootDevice: "sda"
+            interfaceMAC: "00:11:22:33:44:55"
+            ipAddress: "10.0.0.50"
+        workerNodes:
+          - hostname: "worker0"
+            bmcAddress: "ipmi://10.0.0.21"
+            bmcCredentialsName: "bmc-secret"
+            bootMAC: "00:11:22:33:44:66"
+            bootMode: "UEFI"
+            rootDevice: "sda"
+            interfaceMAC: "00:11:22:33:44:66"
+            ipAddress: "10.0.0.51"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: clusters
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 10
