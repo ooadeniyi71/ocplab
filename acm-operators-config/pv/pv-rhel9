@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: topolvm.io
+    volume.kubernetes.io/provisioner-deletion-secret-name: ""
+    volume.kubernetes.io/provisioner-deletion-secret-namespace: ""
+  labels:
+    kubernetes.io/hostname: hpe2ocp4lab.attlocal.net
+  name: pvc-6dd5a0c5-ca1f-45f1-9cd4-07f15049c2e7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 30Gi
+  claimRef:
+    name: rhel9-7005186c23b8
+    namespace: openshift-virtualization-os-images
+    resourceVersion: "81544"
+    uid: 92b408ad-9fba-4a86-893a-af41b17dc8b9
+  csi:
+    driver: topolvm.io
+    volumeAttributes:
+      storage.kubernetes.io/csiProvisionerIdentity: 1785992964464-1553-topolvm.io
+    volumeHandle: 87d03e76-221e-4597-be44-e4d9eab812ad
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: topology.topolvm.io/node
+          operator: In
+          values:
+          - hpe2ocp4lab.attlocal.net
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: lvms-vg1
+  volumeMode: Block
