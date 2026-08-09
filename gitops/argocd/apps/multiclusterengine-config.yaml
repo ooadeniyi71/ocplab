@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: multiclusterengine-config
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ooadeniyi71/ocplab.git
+    targetRevision: main
+    path: acm-operators-config/multiclusterengine
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: multicluster-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 10
