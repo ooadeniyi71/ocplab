@@ -1,0 +1,50 @@
+apiVersion: multicluster.openshift.io/v1
+kind: MultiClusterEngine
+metadata:
+  name: multiclusterengine
+  namespace: multicluster-engine
+spec:
+  # Disable HyperShift components for Cluster API deployments
+  imagePullSecret: ""
+  
+  # Enable Cluster API components for bare metal deployments
+  components:
+    # Enable Cluster API
+    - name: cluster-api
+      enabled: true
+    
+    # Enable Cluster API Provider OpenShift Assisted (for bare metal)
+    - name: cluster-api-provider-openshift-assisted
+      enabled: true
+    
+    # Enable Cluster API Provider Metal3 (for bare metal provisioning)
+    - name: cluster-api-provider-metal3
+      enabled: true
+    
+    # Optionally enable other Cluster API providers if needed
+    - name: cluster-api-provider-aws
+      enabled: false
+    
+    - name: cluster-api-provider-azure-preview
+      enabled: false
+    
+    # IMPORTANT: Disable HyperShift components
+    # These cannot be enabled together with Cluster API
+    - name: hypershift
+      enabled: false
+    
+    - name: hypershift-local-hosting
+      enabled: false
+    
+    # Enable infrastructure components
+    - name: infrastructure-operator
+      enabled: true
+
+  # Set availability type
+  availabilityConfig: HighlyAvailable
+
+  # Optional: Set node selector for MCE components
+  nodeSelector: {}
+
+  # Optional: Set tolerations for MCE components
+  tolerations: []
