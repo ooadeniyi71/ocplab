@@ -40,8 +40,8 @@ spec:
     - name: infrastructure-operator
       enabled: true
 
-  # Set availability type
-  availabilityConfig: HighlyAvailable
+  # Set availability type - valid values: Basic or HighAvailability
+  availabilityConfig: HighAvailability
 
   # Optional: Set node selector for MCE components
   nodeSelector: {}
