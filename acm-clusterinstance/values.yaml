@@ -9,8 +9,8 @@
 # CLUSTER METADATA
 # ============================================================================
 cluster:
-  name: "ocplab1"
-  namespace: "ocplab1-spoke"
+  name: "ocp4lab1"
+  namespace: "ocp4lab1-spoke"
   environment: "homelab"
   syncWave: "2"
 
@@ -47,7 +47,7 @@ clusterSpec:
 clusterLabels:
   cloud: "BareMetal"
   tier: "cdf"
-  site: "ocplab1"
+  site: "ocp4lab1"
   clusterset: "homelab"
 
 # ============================================================================
@@ -73,10 +73,10 @@ network:
 templateRefs:
   cluster:
     - name: "ai-cluster-templates-v1"
-      namespace: "ocplab1-spoke"
+      namespace: "ocp4lab1-spoke"
   node:
     - name: "ai-node-templates-v1"
-      namespace: "ocplab1-spoke"
+      namespace: "ocp4lab1-spoke"
 
 # ============================================================================
 # NETWORK INTERFACE DEFAULTS
