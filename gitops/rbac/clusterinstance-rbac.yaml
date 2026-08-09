@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ocplab1-spoke
+  name: ocp4lab1-spoke
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argocd-clusterinstance-role
-  namespace: ocplab1-spoke
+  namespace: ocp4lab1-spoke
 rules:
   - apiGroups:
       - siteconfig.open-cluster-management.io
@@ -54,7 +54,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: argocd-clusterinstance-rolebinding
-  namespace: ocplab1-spoke
+  namespace: ocp4lab1-spoke
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
